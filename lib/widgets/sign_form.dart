@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
+import 'package:fluttertemplates/models/user.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:dbcrypt/dbcrypt.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class FormSignIn extends StatefulWidget {
   @override
@@ -9,10 +14,18 @@ class FormSignIn extends StatefulWidget {
 
 class _FormSignInState extends State<FormSignIn> {
   final _formKey = GlobalKey<FormState>();
+
+  String errMsg = "";
+  String name;
   String _name = "";
+  String email = "";
   String _email = "";
+  String password = "";
   String _password = "";
+  String checkPass = "";
   String _checkPass = "";
+  bool isSignedIn = false;
+  bool existUser = false;
 
   @override
   Widget build(BuildContext context) {
@@ -23,10 +36,11 @@ class _FormSignInState extends State<FormSignIn> {
           Padding(
             padding: EdgeInsets.only(left: 30, right: 30),
             child: TextFormField(
+              onChanged: (String value) {
+                email = value;
+              },
               onSaved: (String value) {
-                setState(() {
-                  _email = value;
-                });
+                _email = email;
               },
               // ignore: missing_return
               validator: (value) {
@@ -67,10 +81,11 @@ class _FormSignInState extends State<FormSignIn> {
           Padding(
             padding: EdgeInsets.only(left: 30, right: 30),
             child: TextFormField(
+              onChanged: (String value) {
+                name = value;
+              },
               onSaved: (String value) {
-                setState(() {
-                  _name = value;
-                });
+                _name = name;
               },
               // ignore: missing_return
               validator: (value) {
@@ -112,11 +127,12 @@ class _FormSignInState extends State<FormSignIn> {
             padding: EdgeInsets.only(left: 30, right: 30),
             child: TextFormField(
               //* to hide the text, true then hidden
-              obscureText: true,
+              obscureText: false,
+              onChanged: (value) {
+                password = value;
+              },
               onSaved: (String value) {
-                setState(() {
-                  _password = value;
-                });
+                _password = password;
               },
               // ignore: missing_return
               validator: (value) {
@@ -157,11 +173,14 @@ class _FormSignInState extends State<FormSignIn> {
             padding: EdgeInsets.only(left: 30, right: 30),
             child: TextFormField(
               //* to hide the text, true then hidden
-              obscureText: true,
+              obscureText: false,
+              // on change to keep track of changes when button is not pressed
+              onChanged: (value) {
+                checkPass = value;
+              },
               onSaved: (String value) {
-                setState(() {
-                  _checkPass = value;
-                });
+                //the form is saved below after validation then update the value
+                _checkPass = checkPass;
               },
               // ignore: missing_return
               validator: (value) {
@@ -173,7 +192,7 @@ class _FormSignInState extends State<FormSignIn> {
                     .hasMatch(value)) {
                   return "Invalid password format";
                 }
-                if (_checkPass != _password) {
+                if (checkPass.trim() != password.trim()) {
                   return "Above password doesn't match.";
                 }
               },
@@ -207,33 +226,11 @@ class _FormSignInState extends State<FormSignIn> {
             child: RaisedButton(
               elevation: 20,
               onPressed: () {
-                _formKey.currentState.validate()
-                    ? Scaffold.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            "Form Validated",
-                            style: TextStyle(
-                              color: Colors.black,
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          backgroundColor: Colors.white,
-                        ),
-                      )
-                    : Scaffold.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            "Email or password not Validated",
-                            style: TextStyle(
-                              color: Colors.black,
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          backgroundColor: Colors.redAccent,
-                        ),
-                      );
+                print(email + " " + _email);
+                print(name + " " + _name);
+                print(password + " " + _password);
+                print(checkPass + " " + _checkPass);
+                validateDetails();
               },
               child: ShaderMask(
                 shaderCallback: (Rect bounds) => RadialGradient(
@@ -246,7 +243,7 @@ class _FormSignInState extends State<FormSignIn> {
                   tileMode: TileMode.mirror,
                 ).createShader(bounds),
                 child: Text(
-                  "Log In",
+                  "Sign Up",
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 30,
@@ -262,5 +259,63 @@ class _FormSignInState extends State<FormSignIn> {
         ],
       ),
     );
+  }
+
+  Future<void> checkExistUser() async {
+    await Firestore.instance
+        .collection("users")
+        .getDocuments()
+        .then((querySnapshot) {
+      querySnapshot.documents.forEach((result) {
+        if (_email == result.data["email"]) {
+          print("$_email already exists in the users collections");
+          existUser = true;
+        } else {
+          existUser = false;
+        }
+      });
+    });
+  }
+
+  Future<void> signUp() async {
+    await FirebaseAuth.instance
+        .createUserWithEmailAndPassword(
+      email: _email,
+      password: new DBCrypt().hashpw(_password, new DBCrypt().gensalt()),
+    )
+        .then((signedInUser) {
+      isSignedIn = true;
+
+      //Storing the new user in firestore database
+      UserManagement(signedInUser.user.uid)
+          .storeNewUser(signedInUser.user, context);
+    }).catchError((err) {
+      if (err is PlatformException) {
+        Scaffold.of(context).showSnackBar(SnackBar(
+          content: Text("$_email already exists!"),
+          backgroundColor: Colors.redAccent,
+        ));
+        print(err);
+      }
+    });
+
+    if (isSignedIn) {
+      Scaffold.of(context).showSnackBar(SnackBar(
+        content: Text("Sign In Success"),
+        backgroundColor: Colors.green,
+      ));
+      Navigator.pop(context);
+    }
+  }
+
+  void validateDetails() {
+    if (_formKey.currentState.validate()) {
+      _formKey.currentState.save();
+      print(email + " " + _email);
+      print(name + " " + _name);
+      print(password + " " + _password);
+      print(checkPass + " " + _checkPass);
+      signUp();
+    }
   }
 }
