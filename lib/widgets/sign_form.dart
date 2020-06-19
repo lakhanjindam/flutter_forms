@@ -5,7 +5,8 @@ import 'package:fluttertemplates/models/user.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:dbcrypt/dbcrypt.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:rflutter_alert/rflutter_alert.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class FormSignIn extends StatefulWidget {
   @override
@@ -16,7 +17,7 @@ class _FormSignInState extends State<FormSignIn> {
   final _formKey = GlobalKey<FormState>();
 
   String errMsg = "";
-  String name;
+  String name = "";
   String _name = "";
   String email = "";
   String _email = "";
@@ -261,31 +262,46 @@ class _FormSignInState extends State<FormSignIn> {
     );
   }
 
-  Future<void> checkExistUser() async {
-    await Firestore.instance
-        .collection("users")
-        .getDocuments()
-        .then((querySnapshot) {
-      querySnapshot.documents.forEach((result) {
-        if (_email == result.data["email"]) {
-          print("$_email already exists in the users collections");
-          existUser = true;
-        } else {
-          existUser = false;
-        }
-      });
-    });
+  _showSignUp() {
+    var alertStyle = AlertStyle(
+        animationType: AnimationType.fromTop,
+        isOverlayTapDismiss: false,
+        isCloseButton: false,
+        alertBorder: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ));
+    Alert(
+        type: AlertType.success,
+        title: "Sign In success",
+        style: alertStyle,
+        context: context,
+        buttons: [
+          DialogButton(
+            onPressed: () {
+              Navigator.pushReplacementNamed(context, '/home');
+            },
+            child: Text(
+              "OK",
+              style: TextStyle(
+                color: Colors.black,
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            color: Colors.greenAccent,
+            radius: BorderRadius.all(Radius.circular(20)),
+          )
+        ]).show();
   }
 
   Future<void> signUp() async {
     await FirebaseAuth.instance
         .createUserWithEmailAndPassword(
       email: _email,
-      password: new DBCrypt().hashpw(_password, new DBCrypt().gensalt()),
+      password: _password,
     )
         .then((signedInUser) {
       isSignedIn = true;
-
       //Storing the new user in firestore database
       UserManagement(signedInUser.user.uid)
           .storeNewUser(signedInUser.user, context);
@@ -300,21 +316,13 @@ class _FormSignInState extends State<FormSignIn> {
     });
 
     if (isSignedIn) {
-      Scaffold.of(context).showSnackBar(SnackBar(
-        content: Text("Sign In Success"),
-        backgroundColor: Colors.green,
-      ));
-      Navigator.pop(context);
+      _showSignUp();
     }
   }
 
   void validateDetails() {
     if (_formKey.currentState.validate()) {
       _formKey.currentState.save();
-      print(email + " " + _email);
-      print(name + " " + _name);
-      print(password + " " + _password);
-      print(checkPass + " " + _checkPass);
       signUp();
     }
   }

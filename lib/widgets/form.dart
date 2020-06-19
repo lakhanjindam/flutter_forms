@@ -1,6 +1,11 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:dbcrypt/dbcrypt.dart';
+import 'package:rflutter_alert/rflutter_alert.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class FormWidget extends StatefulWidget {
   @override
@@ -9,8 +14,11 @@ class FormWidget extends StatefulWidget {
 
 class _FormWidgetState extends State<FormWidget> {
   final _formKey = GlobalKey<FormState>();
-  String _name = "";
+  String email = "";
+  String _email = "";
+  String password = "";
   String _password = "";
+  bool isLogin = false;
 
   @override
   Widget build(BuildContext context) {
@@ -21,11 +29,13 @@ class _FormWidgetState extends State<FormWidget> {
           Padding(
             padding: EdgeInsets.only(left: 30, right: 30),
             child: TextFormField(
-              onSaved: (String value) {
-                setState(() {
-                  _name = value;
-                });
+              onChanged: (String value) {
+                email = value;
               },
+              onSaved: (String value) {
+                _email = email;
+              },
+
               // ignore: missing_return
               validator: (value) {
                 if (value.isEmpty) {
@@ -67,20 +77,16 @@ class _FormWidgetState extends State<FormWidget> {
             child: TextFormField(
               //* to hide the text, true then hidden
               obscureText: true,
+              onChanged: (String value) {
+                password = value;
+              },
               onSaved: (String value) {
-                setState(() {
-                  _password = value;
-                });
+                _password = password;
               },
               // ignore: missing_return
               validator: (value) {
                 if (value.isEmpty) {
                   return "Password cannot be empty";
-                }
-                if (!RegExp(
-                        r'^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[!@#\$&*~]).{8,}$')
-                    .hasMatch(value)) {
-                  return "Invalid password format";
                 }
               },
               style: TextStyle(
@@ -113,33 +119,7 @@ class _FormWidgetState extends State<FormWidget> {
             child: RaisedButton(
               elevation: 20,
               onPressed: () {
-                _formKey.currentState.validate()
-                    ? Scaffold.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            "Form Validated",
-                            style: TextStyle(
-                              color: Colors.black,
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          backgroundColor: Colors.white,
-                        ),
-                      )
-                    : Scaffold.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            "Email or password not Validated",
-                            style: TextStyle(
-                              color: Colors.black,
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          backgroundColor: Colors.redAccent,
-                        ),
-                      );
+                validateLogin();
               },
               child: ShaderMask(
                 shaderCallback: (Rect bounds) => RadialGradient(
@@ -168,5 +148,82 @@ class _FormWidgetState extends State<FormWidget> {
         ],
       ),
     );
+  }
+
+  String hashPass() {
+    return new DBCrypt().hashpw(_password, new DBCrypt().gensalt());
+  }
+
+  _showLogIn() {
+    var alertStyle = AlertStyle(
+        animationType: AnimationType.fromTop,
+        isOverlayTapDismiss: false,
+        isCloseButton: false,
+        alertBorder: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ));
+    Alert(
+        type: AlertType.success,
+        title: "Sign In success",
+        style: alertStyle,
+        context: context,
+        buttons: [
+          DialogButton(
+            onPressed: () {
+              //removes previous routes in stack and push current route.
+              Navigator.pushNamedAndRemoveUntil(
+                  context, '/user', (Route<dynamic> route) => false);
+            },
+            child: Text(
+              "OK",
+              style: TextStyle(
+                color: Colors.black,
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            color: Colors.greenAccent,
+            radius: BorderRadius.all(Radius.circular(20)),
+          )
+        ]).show();
+  }
+
+  Future<void> setUser(String userName) async {
+    SharedPreferences pref = await SharedPreferences.getInstance();
+    pref.setString(
+      "user",
+      userName,
+    );
+    print(pref.getString("user"));
+  }
+
+  Future<void> logIn() async {
+    await FirebaseAuth.instance
+        .signInWithEmailAndPassword(email: _email, password: _password)
+        .then((user) {
+      setUser(_email);
+//      print(user);
+      isLogin = true;
+    }).catchError((err) {
+      print(err);
+      if (err is PlatformException) {
+        Scaffold.of(context).showSnackBar(SnackBar(
+          content: Text("Invalid Email or Password"),
+          backgroundColor: Colors.redAccent,
+        ));
+      }
+    });
+    if (isLogin) {
+      _showLogIn();
+    }
+  }
+
+  validateLogin() {
+    if (_formKey.currentState.validate()) {
+      _formKey.currentState.save();
+//      print(_email);
+//      print(_password);
+      logIn();
+    }
   }
 }
