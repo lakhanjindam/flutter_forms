@@ -4,8 +4,8 @@ import 'package:fluttertemplates/widgets/list_card.dart';
 
 class CardList extends StatelessWidget {
   List<ListData> data = [
-    ListData("Log In", Colors.orange, '/form'),
-    ListData("Sign Up", Colors.orange, '/signup'),
+    ListData("Log In", Colors.white, '/form'),
+    ListData("Sign Up", Colors.green, '/signup'),
   ];
 
   @override
