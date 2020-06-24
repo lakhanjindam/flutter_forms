@@ -14,6 +14,19 @@ class FormSignIn extends StatefulWidget {
 }
 
 class _FormSignInState extends State<FormSignIn> {
+  bool _passwordVisible;
+
+  @override
+  void initState() {
+    super.initState();
+    _passwordVisible = false;
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+  }
+
   final _formKey = GlobalKey<FormState>();
 
   String errMsg = "";
@@ -41,7 +54,7 @@ class _FormSignInState extends State<FormSignIn> {
                 email = value;
               },
               onSaved: (String value) {
-                _email = email;
+                _email = email.trim();
               },
               // ignore: missing_return
               validator: (value) {
@@ -128,7 +141,7 @@ class _FormSignInState extends State<FormSignIn> {
             padding: EdgeInsets.only(left: 30, right: 30),
             child: TextFormField(
               //* to hide the text, true then hidden
-              obscureText: false,
+              obscureText: !_passwordVisible,
               onChanged: (value) {
                 password = value;
               },
@@ -154,12 +167,24 @@ class _FormSignInState extends State<FormSignIn> {
                 //fills the input box with color.
                 //fillColor: Colors.white,
 
+                suffixIcon: IconButton(
+                  color: !_passwordVisible ? Colors.green : Colors.red,
+                  onPressed: () {
+                    setState(() {
+                      _passwordVisible = !_passwordVisible;
+                    });
+                  },
+                  disabledColor: Colors.red,
+                  icon: _passwordVisible
+                      ? Icon(Icons.visibility_off)
+                      : Icon(Icons.visibility),
+                ),
                 hintText: "Password",
                 focusedBorder: UnderlineInputBorder(
                     //*changes underline  border color to orange when clicked!
                     borderSide: BorderSide(color: Colors.amber)),
 
-                contentPadding: EdgeInsets.only(left: 5, right: 5),
+                contentPadding: EdgeInsets.only(left: 5, right: 5, top: 10),
                 icon: Icon(
                   FontAwesomeIcons.lock,
                   color: Colors.blueGrey,
@@ -174,7 +199,7 @@ class _FormSignInState extends State<FormSignIn> {
             padding: EdgeInsets.only(left: 30, right: 30),
             child: TextFormField(
               //* to hide the text, true then hidden
-              obscureText: false,
+              obscureText: !_passwordVisible,
               // on change to keep track of changes when button is not pressed
               onChanged: (value) {
                 checkPass = value;
@@ -188,13 +213,8 @@ class _FormSignInState extends State<FormSignIn> {
                 if (value.isEmpty) {
                   return "Password cannot be empty";
                 }
-                if (!RegExp(
-                        r'^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[!@#\$&*~]).{8,}$')
-                    .hasMatch(value)) {
-                  return "Invalid password format";
-                }
                 if (checkPass.trim() != password.trim()) {
-                  return "Above password doesn't match.";
+                  return "Password don't match";
                 }
               },
               style: TextStyle(
@@ -203,14 +223,23 @@ class _FormSignInState extends State<FormSignIn> {
               //initialValue: "Enter your name",
               decoration: InputDecoration(
                 //fills the input box with color.
-                //fillColor: Colors.white,
-
+                suffixIcon: IconButton(
+                  color: !_passwordVisible ? Colors.green : Colors.red,
+                  onPressed: () {
+                    setState(() {
+                      _passwordVisible = !_passwordVisible;
+                    });
+                  },
+                  icon: _passwordVisible
+                      ? Icon(Icons.visibility_off)
+                      : Icon(Icons.visibility),
+                ),
                 hintText: "Re-enter Password",
                 focusedBorder: UnderlineInputBorder(
                     //*changes underline  border color to orange when clicked!
                     borderSide: BorderSide(color: Colors.amber)),
 
-                contentPadding: EdgeInsets.only(left: 5, right: 5),
+                contentPadding: EdgeInsets.only(left: 5, right: 5, top: 10),
                 icon: Icon(
                   FontAwesomeIcons.lock,
                   color: Colors.blueGrey,
@@ -227,10 +256,6 @@ class _FormSignInState extends State<FormSignIn> {
             child: RaisedButton(
               elevation: 20,
               onPressed: () {
-                print(email + " " + _email);
-                print(name + " " + _name);
-                print(password + " " + _password);
-                print(checkPass + " " + _checkPass);
                 validateDetails();
               },
               child: ShaderMask(

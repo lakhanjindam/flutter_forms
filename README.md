@@ -1,15 +1,32 @@
-# fluttertemplates
-
-Contains various flutter templates.
+# Full fledged flutter LogIn and SignUp
 
 ## Getting Started
 
-This project is a starting point for a Flutter application.
+1. **Add following packages in your dependencies section of pubspec.yaml:**
+```yaml
+dependencies:
+  flutter:
+    sdk: flutter
 
-A few resources to get you started if this is your first Flutter project:
+  font_awesome_flutter:
+  provider:
+  firebase_auth:
+  firebase_core:
+  cloud_firestore:
+  dbcrypt: ^1.0.0
+  rflutter_alert:
+  shared_preferences:
+  # The following adds the Cupertino Icons font to your application.
+  # Use with the CupertinoIcons class for iOS style icons.
+  cupertino_icons: ^0.1.3
+```
+2. **Install above packages through pub which is flutter's package manager**
+```aidl
+flutter pub get
+```
+3. **Project structure looks like below:**
 
-- [Lab: Write your first Flutter app](https://flutter.dev/docs/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://flutter.dev/docs/cookbook)
+    ![](images/proj_struct.jpg)
 
 For help getting started with Flutter, view our
 [online documentation](https://flutter.dev/docs), which offers tutorials,

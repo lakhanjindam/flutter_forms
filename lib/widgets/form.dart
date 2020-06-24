@@ -14,6 +14,19 @@ class FormWidget extends StatefulWidget {
 
 class _FormWidgetState extends State<FormWidget> {
   final _formKey = GlobalKey<FormState>();
+  bool _passwordVisible;
+
+  @override
+  void initState() {
+    super.initState();
+    _passwordVisible = false;
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+  }
+
   String email = "";
   String _email = "";
   String password = "";
@@ -76,7 +89,7 @@ class _FormWidgetState extends State<FormWidget> {
             padding: EdgeInsets.only(left: 30, right: 30),
             child: TextFormField(
               //* to hide the text, true then hidden
-              obscureText: true,
+              obscureText: !_passwordVisible,
               onChanged: (String value) {
                 password = value;
               },
@@ -96,13 +109,23 @@ class _FormWidgetState extends State<FormWidget> {
               decoration: InputDecoration(
                 //fills the input box with color.
                 //fillColor: Colors.white,
-
+                suffixIcon: IconButton(
+                  color: !_passwordVisible ? Colors.green : Colors.red,
+                  onPressed: () {
+                    setState(() {
+                      _passwordVisible = !_passwordVisible;
+                    });
+                  },
+                  icon: _passwordVisible
+                      ? Icon(Icons.visibility_off)
+                      : Icon(Icons.visibility),
+                ),
                 hintText: "Password",
                 focusedBorder: UnderlineInputBorder(
                     //*changes underline  border color to orange when clicked!
                     borderSide: BorderSide(color: Colors.amber)),
 
-                contentPadding: EdgeInsets.only(left: 5, right: 5),
+                contentPadding: EdgeInsets.only(left: 5, right: 5, top: 10),
                 icon: Icon(
                   FontAwesomeIcons.lock,
                   color: Colors.blueGrey,
